@@ -1,0 +1,44 @@
+{
+  "name": "Sample Quiz",
+  "time": 120,
+  "questions": [
+    {
+      "question": "What is true about a rhombus?",
+      "answers": [
+        "All sides have equal length.",
+        "A rhombus is a square.",
+        "The altitude is the distance at right angles to two sides.",
+        "Opposite angles are always equal."
+      ],
+      "correctAnswers": [
+        0,
+        2,
+        3
+      ],
+      "timeLimit": 60
+    },
+    {
+      "question": "What is true about a square?",
+      "answers": [
+        "All sides have equal length.",
+        "It only has 3 sides",
+        "That you are dull."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "timeLimit": 60
+    },
+    {
+      "question": "What is true about a triangle?",
+      "answers": [
+        "It only has 3 sides",
+        "It's pointy"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "timeLimit": 60
+    }
+  ]
+}
