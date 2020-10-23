@@ -52,6 +52,7 @@ app.get('/api', (request, response) => {
  */
 
 app.post('/api/quiz/', (request, response) => {
+    console.log("CREATE QUIZ");
     let quiz = request.body;
     if (!!quiz) {
         let params = {
@@ -69,7 +70,6 @@ app.post('/api/quiz/', (request, response) => {
             if (err) {
                 console.log(err);
             } else {
-                console.log(data);
                 response.send(params.Item);
             }
         });
@@ -78,6 +78,7 @@ app.post('/api/quiz/', (request, response) => {
 
 
 app.get('/api/quiz/:id', (request, response) => {
+    console.log("GET QUIZ");
     let quizId = request.params.id;
     let requestKey = request.url;
     cache.get(requestKey, response, () => {
@@ -92,7 +93,6 @@ app.get('/api/quiz/:id', (request, response) => {
                 if (err) {
                     console.log(err);
                 } else {
-                    console.log(data);
                     response.send(data);
                     cache.set(requestKey, data);
                 }
@@ -103,6 +103,7 @@ app.get('/api/quiz/:id', (request, response) => {
 
 
 app.get('/api/quiz', (request, response) => {
+    console.log("GET QUIZZES");
     scanTable(dynamoTable).then(results => {
         response.send(results)
     })
@@ -110,7 +111,7 @@ app.get('/api/quiz', (request, response) => {
 
 
 app.delete('/api/quiz/:id', (request, response) => {
-    console.log("DELETE");
+    console.log("DELETE QUIZ");
     let quizId = request.params.id;
     console.log(quizId);
     if (!!quizId) {
@@ -124,7 +125,6 @@ app.delete('/api/quiz/:id', (request, response) => {
             if (err) {
                 console.log(err);
             } else {
-                console.log(data);
                 response.send(data);
             }
         });
