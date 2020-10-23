@@ -1,14 +1,12 @@
 require('dotenv').config();
-require('request');
-const express = require('express');
-const session = require('express-session');
-const cookieParser = require('cookie-parser');
+import express from 'express';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import Cache from './cacheMiddleware.js';
-
-const app = express();
-const port = process.env.PORT || 8080;
-const AWS = require('aws-sdk');
+import AWS from 'aws-sdk';
 import {v4 as uuid} from "uuid";
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 
 const cors = require('cors');
 
@@ -17,9 +15,12 @@ AWS.config.update({
     accessKeyId: process.env.accessKeyId,
     secretAccessKey: process.env.secretAccessKey
 });
-let documentClient = new AWS.DynamoDB.DocumentClient();
 
+let documentClient = new AWS.DynamoDB.DocumentClient();
 const dynamoTable = "l2w-quiz-storage";
+const app = express();
+const port = process.env.PORT || 8080;
+const cache = new Cache();
 
 // Enable server-side sessions
 app.use(cookieParser(process.env.sessionSecretKey));
@@ -34,7 +35,6 @@ app.use(session({
 }));
 
 
-const cache = new Cache();
 
 app.listen(port, () => {
     console.log(`Server started: http://localhost:` + port);
