@@ -35,7 +35,6 @@ app.use(session({
 }));
 
 
-
 app.listen(port, () => {
     console.log(`Server started: http://localhost:` + port);
 });
@@ -45,11 +44,6 @@ app.get('/api', (request, response) => {
     response.send(JSON.stringify({"api": "v0"}))
 });
 
-
-/**
- * NOTE: All of the below is obviously not performant at scale and would need to be partitioned by user
- * but for the sake of this assignment, I'm keeping it simple
- */
 
 app.post('/api/quiz/', (request, response) => {
     console.log("CREATE QUIZ");
@@ -65,6 +59,31 @@ app.post('/api/quiz/', (request, response) => {
             },
             ReturnValues: 'ALL_OLD',
 
+        };
+        documentClient.put(params, function (err, data) {
+            if (err) {
+                console.log(err);
+            } else {
+                response.send(params.Item);
+            }
+        });
+    }
+});
+
+app.put('/api/quiz/:id', (request, response) => {
+    console.log("UPDATE QUIZ");
+    let quiz = request.body;
+    let quizId = request.params.id;
+    if (!!quiz && !!quizId) {
+        let params = {
+            TableName: dynamoTable,
+            Item: {
+                Id: quizId,
+                name: quiz.name,
+                time: quiz.time,
+                questions: quiz.questions
+            },
+            ReturnValues: 'ALL_OLD',
         };
         documentClient.put(params, function (err, data) {
             if (err) {
@@ -113,7 +132,6 @@ app.get('/api/quiz', (request, response) => {
 app.delete('/api/quiz/:id', (request, response) => {
     console.log("DELETE QUIZ");
     let quizId = request.params.id;
-    console.log(quizId);
     if (!!quizId) {
         let params = {
             TableName: dynamoTable,
