@@ -123,9 +123,14 @@ app.get('/api/quiz/:id', (request, response) => {
 
 app.get('/api/quiz', (request, response) => {
     console.log("GET QUIZZES");
-    scanTable(dynamoTable).then(results => {
-        response.send(results)
-    })
+    let requestKey = request.url;
+    cache.get(requestKey, response, () => {
+        scanTable(dynamoTable).then(results => {
+            response.send(results);
+            cache.set(requestKey, results)
+        })
+    });
+
 });
 
 
