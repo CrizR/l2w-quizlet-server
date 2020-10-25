@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "npm run build && node ./build/server.js",
     "heroku-postbuild": "npm install",
-    "start": "babel-node src/server.js",
+    "build": "npm run clean && npm run ./node_modules/.bin/build-babel",
+    "build-babel": "./node_modules/.bin/babel -d ./build ./src -s",
+    "clean": "rm -rf build && mkdir build",
     "dev": "nodemon src/server.js --exec babel-node src/server.js"
   },
   "keywords": [],
