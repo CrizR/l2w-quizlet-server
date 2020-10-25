@@ -1,38 +1,46 @@
 require('dotenv').config();
 import express from 'express';
-import session from 'express-session';
-import cookieParser from 'cookie-parser';
 import Cache from './cacheMiddleware.js';
 import AWS from 'aws-sdk';
 import {v4 as uuid} from "uuid";
 import "core-js/stable";
 import "regenerator-runtime/runtime";
+import jwt from 'express-jwt';
+import jwksRsa from 'jwks-rsa';
 
 const cors = require('cors');
 
 AWS.config.update({
-    region: process.env.region,
-    accessKeyId: process.env.accessKeyId,
-    secretAccessKey: process.env.secretAccessKey
+    region: process.env.AWS_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 });
 
 let documentClient = new AWS.DynamoDB.DocumentClient();
-const dynamoTable = "l2w-quiz-storage";
+const dynamoTable = "l2w-quizlet-storage";
 const app = express();
 const port = process.env.PORT || 8080;
 const cache = new Cache();
 
 // Enable server-side sessions
-app.use(cookieParser(process.env.sessionSecretKey));
 app.use(express.urlencoded());
 app.use(express.json());
 app.use(cors());
-app.use(session({
-    secret: process.env.sessionSecretKey,
-    proxy: true,
-    resave: true,
-    saveUninitialized: true
-}));
+
+
+const checkJwt = jwt({
+    secret: jwksRsa.expressJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: `https://${process.env.AUTH_DOMAIN}/.well-known/jwks.json`
+    }),
+
+    // Validate the audience and the issuer.
+    audience: process.env.AUTH_AUDIENCE,
+    issuer: `https://${process.env.AUTH_DOMAIN}/`,
+    algorithms: ['RS256']
+});
 
 
 app.listen(port, () => {
@@ -45,14 +53,16 @@ app.get('/api', (request, response) => {
 });
 
 
-app.post('/api/quiz/', (request, response) => {
+app.post('/api/user/:email/quiz', checkJwt, (request, response) => {
     console.log("CREATE QUIZ");
     let quiz = request.body;
-    if (!!quiz) {
+    let email = request.params.email;
+    if (!!quiz && !!email) {
         let params = {
             TableName: dynamoTable,
             Item: {
-                Id: uuid(),
+                email: email,
+                quiz_id: uuid(),
                 name: quiz.name,
                 time: quiz.time,
                 questions: quiz.questions
@@ -70,15 +80,17 @@ app.post('/api/quiz/', (request, response) => {
     }
 });
 
-app.put('/api/quiz/:id', (request, response) => {
+app.put('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
     console.log("UPDATE QUIZ");
     let quiz = request.body;
     let quizId = request.params.id;
-    if (!!quiz && !!quizId) {
+    let email = request.params.email;
+    if (!!quiz && !!quizId && !!email) {
         let params = {
             TableName: dynamoTable,
             Item: {
-                Id: quizId,
+                email: email,
+                quiz_id: quizId,
                 name: quiz.name,
                 time: quiz.time,
                 questions: quiz.questions
@@ -96,16 +108,18 @@ app.put('/api/quiz/:id', (request, response) => {
 });
 
 
-app.get('/api/quiz/:id', (request, response) => {
+app.get('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
     console.log("GET QUIZ");
     let quizId = request.params.id;
+    let email = request.params.email;
     let requestKey = request.url;
     cache.get(requestKey, response, () => {
-        if (!!quizId) {
+        if (!!quizId && !!email) {
             let params = {
                 TableName: dynamoTable,
                 Key: {
-                    Id: quizId
+                    email: email,
+                    quiz_id: quizId
                 }
             };
             documentClient.get(params, function (err, data) {
@@ -121,22 +135,39 @@ app.get('/api/quiz/:id', (request, response) => {
 });
 
 
-app.get('/api/quiz', (request, response) => {
+app.get('/api/user/:email/quiz', checkJwt, (request, response) => {
+    let email = request.params.email;
     console.log("GET QUIZZES");
-    scanTable(dynamoTable).then(results => {
-        response.send(results)
-    })
+    if (!!email) {
+        let params = {
+            TableName: dynamoTable,
+            KeyConditionExpression: 'email = :email',
+            ExpressionAttributeValues: {
+                ':email': email,
+            }
+        };
+        documentClient.query(params, function (err, data) {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log(data);
+                response.send(data.Items);
+            }
+        });
+    }
 });
 
 
-app.delete('/api/quiz/:id', (request, response) => {
+app.delete('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
     console.log("DELETE QUIZ");
     let quizId = request.params.id;
-    if (!!quizId) {
+    let email = request.params.email;
+    if (!!quizId && !!email) {
         let params = {
             TableName: dynamoTable,
             Key: {
-                Id: quizId,
+                email: email,
+                quiz_id: quizId,
             },
         };
         documentClient.delete(params, function (err, data) {
@@ -148,18 +179,3 @@ app.delete('/api/quiz/:id', (request, response) => {
         });
     }
 });
-
-
-export const scanTable = async (tableName) => {
-    const params = {
-        TableName: tableName,
-    };
-    let scanResults = [];
-    let items;
-    do {
-        items = await documentClient.scan(params).promise();
-        items.Items.forEach((item) => scanResults.push(item));
-        params.ExclusiveStartKey = items.LastEvaluatedKey;
-    } while (typeof items.LastEvaluatedKey != "undefined");
-    return scanResults;
-};
