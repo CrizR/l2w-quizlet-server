@@ -74,6 +74,7 @@ app.post('/api/user/:email/quiz', checkJwt, (request, response) => {
             if (err) {
                 console.log(err);
             } else {
+                cache.remove("getAllQuizzes");
                 response.send(params.Item);
             }
         });
@@ -101,6 +102,8 @@ app.put('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
             if (err) {
                 console.log(err);
             } else {
+                cache.remove(quizId);
+                cache.remove("getAllQuizzes");
                 response.send(params.Item);
             }
         });
@@ -112,8 +115,7 @@ app.get('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
     console.log("GET QUIZ");
     let quizId = request.params.id;
     let email = request.params.email;
-    let requestKey = request.url;
-    cache.get(requestKey, response, () => {
+    cache.get(quizId, response, () => {
         if (!!quizId && !!email) {
             let params = {
                 TableName: dynamoTable,
@@ -127,7 +129,7 @@ app.get('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
                     console.log(err);
                 } else {
                     response.send(data);
-                    cache.set(requestKey, data);
+                    cache.set(quizId, data);
                 }
             });
         }
@@ -138,23 +140,26 @@ app.get('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
 app.get('/api/user/:email/quiz', checkJwt, (request, response) => {
     let email = request.params.email;
     console.log("GET QUIZZES");
-    if (!!email) {
-        let params = {
-            TableName: dynamoTable,
-            KeyConditionExpression: 'email = :email',
-            ExpressionAttributeValues: {
-                ':email': email,
-            }
-        };
-        documentClient.query(params, function (err, data) {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log(data);
-                response.send(data.Items);
-            }
-        });
-    }
+    let cacheKey = "getAllQuizzes";
+    cache.get(cacheKey, response, () => {
+        if (!!email) {
+            let params = {
+                TableName: dynamoTable,
+                KeyConditionExpression: 'email = :email',
+                ExpressionAttributeValues: {
+                    ':email': email,
+                }
+            };
+            documentClient.query(params, function (err, data) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    cache.set(cacheKey, data.Items);
+                    response.send(data.Items);
+                }
+            });
+        }
+    });
 });
 
 

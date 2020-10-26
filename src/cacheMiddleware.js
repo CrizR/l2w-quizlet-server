@@ -11,14 +11,19 @@ class Cache {
         this.cache.set(query, results);
     }
 
+    remove(key) {
+        this.cache.del(key);
+    }
+
     get(query, response, next) {
         const content = this.cache.get(query);
         if (content) {
+            console.log("CACHED");
             return response.status(200).send(content)
         }
         return next()
     }
-};
+}
 
 
 export default Cache
