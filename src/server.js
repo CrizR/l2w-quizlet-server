@@ -74,7 +74,7 @@ app.post('/api/user/:email/quiz', checkJwt, (request, response) => {
             if (err) {
                 console.log(err);
             } else {
-                cache.remove("getAllQuizzes");
+                cache.remove(email);
                 response.send(params.Item);
             }
         });
@@ -86,6 +86,7 @@ app.put('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
     let quiz = request.body;
     let quizId = request.params.id;
     let email = request.params.email;
+    let userCacheKey = email;
     if (!!quiz && !!quizId && !!email) {
         let params = {
             TableName: dynamoTable,
@@ -103,7 +104,7 @@ app.put('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
                 console.log(err);
             } else {
                 cache.remove(quizId);
-                cache.remove("getAllQuizzes");
+                cache.remove(userCacheKey);
                 response.send(params.Item);
             }
         });
@@ -140,8 +141,8 @@ app.get('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
 app.get('/api/user/:email/quiz', checkJwt, (request, response) => {
     let email = request.params.email;
     console.log("GET QUIZZES");
-    let cacheKey = "getAllQuizzes";
-    cache.get(cacheKey, response, () => {
+    let userCacheKey = email;
+    cache.get(userCacheKey, response, () => {
         if (!!email) {
             let params = {
                 TableName: dynamoTable,
@@ -154,7 +155,7 @@ app.get('/api/user/:email/quiz', checkJwt, (request, response) => {
                 if (err) {
                     console.log(err);
                 } else {
-                    cache.set(cacheKey, data.Items);
+                    cache.set(userCacheKey, data.Items);
                     response.send(data.Items);
                 }
             });
@@ -167,6 +168,7 @@ app.delete('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
     console.log("DELETE QUIZ");
     let quizId = request.params.id;
     let email = request.params.email;
+    let userCacheKey = email;
     if (!!quizId && !!email) {
         let params = {
             TableName: dynamoTable,
@@ -179,6 +181,8 @@ app.delete('/api/user/:email/quiz/:id', checkJwt, (request, response) => {
             if (err) {
                 console.log(err);
             } else {
+                cache.remove(userCacheKey);
+                cache.remove(quizId);
                 response.send(data);
             }
         });
