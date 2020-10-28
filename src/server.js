@@ -22,7 +22,6 @@ const app = express();
 const port = process.env.PORT || 8080;
 const cache = new Cache();
 
-// Enable server-side sessions
 app.use(express.urlencoded());
 app.use(express.json());
 app.use(cors());
